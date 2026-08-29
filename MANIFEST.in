@@ -1,0 +1,14 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+recursive-include etraph_theme *.css
+recursive-include etraph_theme *.csv
+recursive-include etraph_theme *.html
+recursive-include etraph_theme *.js
+recursive-include etraph_theme *.json
+recursive-include etraph_theme *.md
+recursive-include etraph_theme *.png
+recursive-include etraph_theme *.py
+recursive-include etraph_theme *.svg
+recursive-include etraph_theme *.txt
+recursive-exclude etraph_theme *.pyc

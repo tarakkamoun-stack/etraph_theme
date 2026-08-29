@@ -1,0 +1,66 @@
+/*
+ * Habillage ETRAPH pour ERPNext/Frappe.
+ * Vert #064F26 / or #E0C800 (extraits du logo ETRAPH), Archivo + IBM Plex Sans/Mono —
+ * identite deja utilisee sur chiffrage.etraph.com et le Nextcloud box.etraph.com.
+ *
+ * Volontairement minimal (couleurs + polices, pas de refonte de layout) pour survivre aux
+ * migrations Frappe. Les noms de variables CSS ci-dessous sont ceux connus des versions
+ * recentes de Frappe/Frappe UI (v15/v16) — A VERIFIER sur l'instance reellement deployee
+ * (inspecteur navigateur sur le Desk) et ajuster si une variable ne matche pas.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+	--etraph-green: #064f26;
+	--etraph-gold: #e0c800;
+
+	/* Frappe UI / Desk (v15+) : couleur d'accent principale */
+	--primary: var(--etraph-green);
+	--primary-color: var(--etraph-green);
+	--dark-green: var(--etraph-green);
+
+	/* Typographie */
+	--font-stack: 'Archivo', 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+	--text-editor: 'IBM Plex Mono', 'SFMono-Regular', monospace;
+}
+
+body,
+.navbar,
+.form-control,
+.btn {
+	font-family: var(--font-stack);
+}
+
+code,
+.code-block,
+.CodeMirror {
+	font-family: var(--text-editor);
+}
+
+/* Barre de navigation Desk */
+.navbar {
+	background-color: var(--etraph-green) !important;
+}
+
+/* Boutons primaires (bootstrap-style, utilise par le Desk et les Web Forms) */
+.btn-primary {
+	background-color: var(--etraph-green) !important;
+	border-color: var(--etraph-green) !important;
+}
+
+.btn-primary:hover {
+	background-color: var(--etraph-gold) !important;
+	border-color: var(--etraph-gold) !important;
+	color: var(--etraph-green) !important;
+}
+
+/* Liens et accents ponctuels en or */
+a {
+	color: var(--etraph-green);
+}
+
+.indicator.green,
+.indicator-pill.green {
+	background-color: var(--etraph-green) !important;
+}
