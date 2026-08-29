@@ -1,6 +1,6 @@
 # A placer dans .github/workflows/build-image.yml du depot etraph/etraph_theme une fois cree.
 # Construit l'image Docker ERPNext custom (erpnext + hrms + etraph_theme) et la pousse sur
-# ghcr.io/etraph/erpnext-etraph — build fait par GitHub Actions (isole, aucune charge sur les
+# ghcr.io/tarakkamoun-stack/erpnext-etraph — build fait par GitHub Actions (isole, aucune charge sur les
 # VPS de prod), conformement a la recommandation du plan d'architecture (ne jamais builder
 # l'image sur le VPS cible : le build esbuild peut saturer sa memoire).
 #
@@ -53,7 +53,7 @@ jobs:
           file: frappe_docker/images/layered/Containerfile
           push: true
           no-cache: true
-          tags: ghcr.io/etraph/erpnext-etraph:v16
+          tags: ghcr.io/tarakkamoun-stack/erpnext-etraph:v16
           build-args: |
             FRAPPE_PATH=https://github.com/frappe/frappe
             FRAPPE_BRANCH=version-16
