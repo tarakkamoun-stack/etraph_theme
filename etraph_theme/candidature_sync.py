@@ -286,6 +286,11 @@ def _upsert_one(source_id, c, base_url, token):
             value = _as_yes_no_unknown(value)
         elif doc_field in JSON_LIST_FIELDS:
             value = _to_json_text(value)
+        # first_name/last_name ont deja une valeur formulaire (lignes plus
+        # haut) : une fiche IA vide (photo de CV, echec DeepSeek) ne doit
+        # pas les ecraser par du vide.
+        if doc_field in ("first_name", "last_name") and not value:
+            continue
         setattr(doc, doc_field, value if value is not None else "")
 
     doc.cv_original_name = cv.get("original_name") or ""
