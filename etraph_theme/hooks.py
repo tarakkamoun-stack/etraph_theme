@@ -44,3 +44,26 @@ scheduler_events = {
         "etraph_theme.candidature_sync.sync_candidatures",
     ]
 }
+
+
+# Caisse hierarchique LEH (V3, 31/08) : controleurs + acces custom.
+# Cf. etraph_theme/caisse_leh.py (contre-audit Kimi applique avant build).
+doc_events.update({
+    "Caisse": {
+        "validate": "etraph_theme.caisse_leh.validate_caisse",
+    },
+    "Mouvement Caisse": {
+        "validate": "etraph_theme.caisse_leh.validate_mouvement",
+        "on_trash": "etraph_theme.caisse_leh.on_trash_mouvement",
+    },
+})
+
+# Le caissier voit les mouvements dont sa caisse est source OU cible
+# (champs caisse/caisse_cible en ignore_user_permissions : acces gere
+# entierement par ces hooks + la matrice type->role dans validate).
+permission_query_conditions = {
+    "Mouvement Caisse": "etraph_theme.caisse_leh.mc_query_conditions",
+}
+has_permission = {
+    "Mouvement Caisse": "etraph_theme.caisse_leh.mc_has_permission",
+}
