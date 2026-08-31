@@ -20,16 +20,29 @@ doc_events = {
         "validate": "etraph_theme.candidature_site_web.guard_write",
         "before_insert": "etraph_theme.candidature_site_web.guard_write",
         "on_trash": "etraph_theme.candidature_site_web.guard_delete",
-    }
+    },
+    # Devis Chiffrage : miroir lecture seule de chiffrage.etraph.com
+    # (doctrine Kimi 30/08, sens unique source -> ERP). Cf.
+    # etraph_theme/devis_chiffrage_sync.py.
+    "Devis Chiffrage": {
+        "validate": "etraph_theme.devis_chiffrage_sync.guard_write",
+        "before_insert": "etraph_theme.devis_chiffrage_sync.guard_write",
+        "on_trash": "etraph_theme.devis_chiffrage_sync.guard_delete",
+    },
 }
 
-# Synchro horaire desactivee tant que les 2 endpoints PHP cote Plesk
+# Synchro carrieres : desactivee tant que les 2 endpoints PHP cote Plesk
 # n'existent pas (cf ETRAPH/site-carrieres/data/spec-endpoint-erp-sync.md).
 # Fonction prete et testable manuellement : etraph_theme.candidature_sync.
-# A activer en decommentant la ligne ci-dessous une fois les endpoints
-# livres et le token pose dans Candidature Sync Settings.
-# scheduler_events = {
-#     "hourly": [
-#         "etraph_theme.candidature_sync.sync_candidatures",
-#     ]
-# }
+# A activer en ajoutant "etraph_theme.candidature_sync.sync_candidatures"
+# a la liste hourly ci-dessous une fois les endpoints livres et le token
+# pose dans Candidature Sync Settings.
+#
+# Synchro Devis Chiffrage : ACTIVE (31/08, approbation Tarak en session
+# principale). Pull horaire depuis chiffrage.etraph.com, config dans le
+# Single "Devis Chiffrage Sync Settings".
+scheduler_events = {
+    "hourly": [
+        "etraph_theme.devis_chiffrage_sync.sync_devis",
+    ]
+}
