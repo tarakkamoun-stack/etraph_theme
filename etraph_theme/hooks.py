@@ -31,12 +31,9 @@ doc_events = {
     },
 }
 
-# Synchro carrieres : desactivee tant que les 2 endpoints PHP cote Plesk
-# n'existent pas (cf ETRAPH/site-carrieres/data/spec-endpoint-erp-sync.md).
-# Fonction prete et testable manuellement : etraph_theme.candidature_sync.
-# A activer en ajoutant "etraph_theme.candidature_sync.sync_candidatures"
-# a la liste hourly ci-dessous une fois les endpoints livres et le token
-# pose dans Candidature Sync Settings.
+# Synchro carrieres : ACTIVE (31/08, endpoints api/erp-sync/ livres cote
+# Plesk, token pose dans Candidature Sync Settings). Pull horaire, sens
+# unique source -> ERP (etraph_theme/candidature_sync.py).
 #
 # Synchro Devis Chiffrage : ACTIVE (31/08, approbation Tarak en session
 # principale). Pull horaire depuis chiffrage.etraph.com, config dans le
@@ -44,5 +41,6 @@ doc_events = {
 scheduler_events = {
     "hourly": [
         "etraph_theme.devis_chiffrage_sync.sync_devis",
+        "etraph_theme.candidature_sync.sync_candidatures",
     ]
 }
