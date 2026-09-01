@@ -264,6 +264,39 @@ def get_dashboard():
     return {"caisses": caisses, "peut_valider": peut_valider, "user": frappe.session.user}
 
 
+@frappe.whitelist()
+def get_dashboard_site(projet):
+    """Variante de get_dashboard() filtrée par chantier (multi-site : LEH, ARP...).
+    Additive uniquement — get_dashboard() reste inchangée pour ne rien casser
+    sur le bloc Caisse LEH existant."""
+    roles = set(frappe.get_roles())
+    if not (roles & (VALIDATOR_ROLES | {"ETRAPH Caissier"})):
+        frappe.throw(_("Accès réservé aux rôles caisse ETRAPH."), frappe.PermissionError)
+    peut_valider = _is_validator()
+    caisses = frappe.get_all(
+        "Caisse", filters={"actif": 1, "projet": projet},
+        fields=["name", "caisse_name", "devise", "caisse_parent",
+                "fond_de_caisse", "responsable", "projet"],
+        order_by="caisse_parent asc, name asc",
+    )
+    if not peut_valider:
+        allowed = _permitted_caisses()
+        caisses = [c for c in caisses if c.name in allowed]
+    for c in caisses:
+        pend = frappe.get_all(
+            "Mouvement Caisse",
+            filters={"caisse": c.name, "statut_validation": "En attente"},
+            fields=["name", "date", "montant", "designation", "beneficiaire", "owner"],
+            order_by="date asc, creation asc",
+        )
+        c["solde"] = solde_caisse(c.name)
+        c["en_attente"] = pend
+        c["total_en_attente"] = flt(sum(flt(p.montant) for p in pend), 3)
+        c["responsable_nom"] = frappe.db.get_value("User", c.responsable, "full_name") \
+            if c.get("responsable") else None
+    return {"caisses": caisses, "peut_valider": peut_valider, "user": frappe.session.user}
+
+
 # ---------------------------------------------------------------- validation
 
 def _assert_validator():
