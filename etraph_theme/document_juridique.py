@@ -5,7 +5,10 @@
 #     transition, digest conditionnel" au lieu d'un rappel hebdo par document.
 #   - digest hebdomadaire (lundi) = filet de securite anti-perte SMTP, PAS un
 #     rappel par document.
-#   - fichier joint jamais dans l'email (lien /app/... uniquement, exige login).
+#   - fichier joint a l'email de transition/digest (demande explicite Tarak
+#     01/09, remplace la recommandation initiale "lien seul" de Kimi -- le
+#     destinataire doit pouvoir agir sans se connecter a l'ERP), plafonne a
+#     15 Mo (MAX_ATTACHMENT_BYTES) pour ne jamais joindre un gros PDF.
 #   - hook sur File EN PLUS du hook sur le doc parent (fenetre upload->save,
 #     remplacement de fichier).
 #   - "actif" (au lieu de delete) pour retirer un document supplante/doublon
@@ -56,19 +59,41 @@ def _log(msg):
     frappe.logger("document_juridique").info(msg)
 
 
-def _send(recipients, subject, message, dry_run):
+MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024  # garde-fou : jamais un profil societe de 20+ Mo en piece jointe
+
+
+def _attachment_for(d):
+    """Piece jointe = le document lui-meme (demande Tarak 01/09, remplace le
+    lien-seul recommande initialement) : le destinataire doit pouvoir agir
+    sans se connecter a l'ERP. Retourne None si pas de fichier ou trop gros."""
+    if not d.get("fichier"):
+        return None
+    f = frappe.db.get_value("File", {"file_url": d["fichier"]}, ["name", "file_size"], as_dict=True)
+    if not f or (f.file_size or 0) > MAX_ATTACHMENT_BYTES:
+        return None
+    return {"fid": f.name}
+
+
+def _send(recipients, subject, message, dry_run, docs_for_attachments=None):
     if dry_run:
         _log("DRY-RUN, aurait envoye a {0} | {1}".format(recipients, subject))
         return
-    frappe.sendmail(recipients=recipients, subject=subject, message=message, now=True)
-    _log("envoye a {0} | {1}".format(recipients, subject))
+    attachments = [a for a in (_attachment_for(d) for d in (docs_for_attachments or [])) if a]
+    frappe.sendmail(
+        recipients=recipients, sender="info@etraph.com", subject=subject,
+        message=message, now=True, attachments=attachments,
+    )
+    _log("envoye a {0} | {1} ({2} piece(s) jointe(s))".format(recipients, subject, len(attachments)))
 
 
 def _doc_line(d):
     days_left = (getdate(d.date_fin) - getdate(today())).days
-    delai = "expire depuis {0} j".format(-days_left) if days_left < 0 else "expire dans {0} j".format(days_left)
+    if days_left < 0:
+        delai = "expiré depuis {0} jour(s)".format(-days_left)
+    else:
+        delai = "expire dans {0} jour(s) — délai inférieur à un mois".format(days_left)
     url = frappe.utils.get_url_to_form(DOCTYPE, d.name)
-    return "- {0} ({1}, {2}) — {3} — echeance {4} — {5}".format(
+    return "- {0} ({1}, {2}) — {3} — échéance {4} — {5}".format(
         d.nom_fr, d.entite or "-", d.type_piece or "-", delai, d.date_fin, url,
     )
 
@@ -78,18 +103,29 @@ def _transition_subject(transitions):
 
 
 def _transition_body(transitions):
-    lines = ["Documents dont le statut d'expiration a change aujourd'hui :", ""]
+    lines = [
+        "Bonjour,", "",
+        "Le statut d'expiration des documents juridiques suivants a changé aujourd'hui.",
+        "Le délai restant est inférieur à un mois (ou déjà dépassé) — le document concerné",
+        "est joint à cet email pour action immédiate.", "",
+    ]
     lines += [_doc_line(t) for t in transitions]
+    lines += ["", "— ETRAPH ERP (documentation juridique)"]
     return "\n".join(lines)
 
 
 def _digest_subject(current):
-    return "[ETRAPH ERP] Documentation juridique : rappel hebdo ({0} document(s) a surveiller)".format(len(current))
+    return "[ETRAPH ERP] Documentation juridique : rappel hebdo ({0} document(s) à surveiller)".format(len(current))
 
 
 def _digest_body(current):
-    lines = ["Rappel hebdomadaire (filet de securite) — documents actuellement a J-30 ou expires :", ""]
+    lines = [
+        "Bonjour,", "",
+        "Rappel hebdomadaire (filet de sécurité) — documents actuellement à moins d'un",
+        "mois de leur échéance, ou déjà expirés :", "",
+    ]
     lines += [_doc_line(d) for d in current]
+    lines += ["", "— ETRAPH ERP (documentation juridique)"]
     return "\n".join(lines)
 
 
@@ -108,7 +144,7 @@ def check_expirations():
 
     docs = frappe.get_all(
         DOCTYPE, filters={"actif": 1, "notifier": 1},
-        fields=["name", "nom_fr", "date_fin", "alert_level", "entite", "type_piece"],
+        fields=["name", "nom_fr", "date_fin", "alert_level", "entite", "type_piece", "fichier"],
     )
 
     transitions = []
@@ -121,14 +157,14 @@ def check_expirations():
                 frappe.db.set_value(DOCTYPE, d.name, "alert_level", new_level)
 
     if transitions:
-        _send(recipients, _transition_subject(transitions), _transition_body(transitions), dry_run)
+        _send(recipients, _transition_subject(transitions), _transition_body(transitions), dry_run, transitions)
     else:
         _log("aucune transition aujourd'hui")
 
     if frappe.utils.now_datetime().weekday() == 0:  # lundi
         current = [d for d in docs if compute_alert_level(d.date_fin) in ("j30", "expire")]
         if current:
-            _send(recipients, _digest_subject(current), _digest_body(current), dry_run)
+            _send(recipients, _digest_subject(current), _digest_body(current), dry_run, current)
         else:
             _log("digest lundi : rien a signaler")
 
