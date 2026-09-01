@@ -64,3 +64,10 @@ a {
 .indicator-pill.green {
 	background-color: var(--etraph-green) !important;
 }
+
+/* Documentation juridique (01/09) : nom_ar saisi en arabe -> RTL, pas de champ
+   dedie cote Frappe pour la direction du texte, surcharge CSS scopee. */
+.frappe-control[data-fieldname="nom_ar"] input {
+	direction: rtl;
+	text-align: right;
+}

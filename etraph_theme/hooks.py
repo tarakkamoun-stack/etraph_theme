@@ -83,3 +83,20 @@ doc_events.update({
         "on_trash": "etraph_theme.pointage.on_trash_pointage",
     },
 })
+
+
+# Documentation juridique (01/09) : DocType "Document Juridique" + alerte
+# email J-30/expiration + tuile portail. Contre-audit Kimi applique avant
+# build. Cf. etraph_theme/document_juridique.py.
+doc_events.update({
+    "Document Juridique": {
+        "validate": "etraph_theme.document_juridique.guard_document",
+    },
+    "File": {
+        "validate": "etraph_theme.document_juridique.guard_file_private",
+    },
+})
+scheduler_events.setdefault("cron", {})
+scheduler_events["cron"]["30 6 * * *"] = [
+    "etraph_theme.document_juridique.check_expirations",
+]
