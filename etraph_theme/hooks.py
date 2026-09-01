@@ -67,3 +67,19 @@ permission_query_conditions = {
 has_permission = {
     "Mouvement Caisse": "etraph_theme.caisse_leh.mc_has_permission",
 }
+
+
+# Pointage quotidien main d'oeuvre (01/09) : fiches Ouvrier + feuilles
+# Pointage Journalier (1 doc par jour+chantier), taux figes a l'insertion,
+# validation Aymen calquee sur la caisse V3. Cf. etraph_theme/pointage.py.
+doc_events.update({
+    "Ouvrier": {
+        "validate": "etraph_theme.pointage.validate_ouvrier",
+    },
+    "Pointage Journalier": {
+        "before_insert": "etraph_theme.pointage.before_insert_pointage",
+        "validate": "etraph_theme.pointage.validate_pointage",
+        "on_update": "etraph_theme.pointage.on_update_pointage",
+        "on_trash": "etraph_theme.pointage.on_trash_pointage",
+    },
+})
