@@ -10,6 +10,10 @@
 #     remplacement de fichier).
 #   - "actif" (au lieu de delete) pour retirer un document supplante/doublon
 #     sans perdre la trace ni generer un digest hebdomadaire eternel.
+#   - "notifier" (01/09, demande Tarak) : un document avec une date_fin
+#     CONVENTIONNELLE (ex. extrait RNE repute valable 3 mois, pas une date
+#     imprimee sur le document) doit rester consultable/trie mais ne doit PAS
+#     declencher d'email -> filtre sur notifier=1 en plus de actif=1.
 import frappe
 from frappe.utils import getdate, today
 
@@ -103,7 +107,7 @@ def check_expirations():
         return
 
     docs = frappe.get_all(
-        DOCTYPE, filters={"actif": 1},
+        DOCTYPE, filters={"actif": 1, "notifier": 1},
         fields=["name", "nom_fr", "date_fin", "alert_level", "entite", "type_piece"],
     )
 
