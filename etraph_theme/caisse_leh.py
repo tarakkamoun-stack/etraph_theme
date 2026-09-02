@@ -362,18 +362,12 @@ def annuler_mouvement(name, motif):
 
 def simplify_caisses_workspace():
     """Remplace les 2 raccourcis natifs morts (Mouvements de caisse, Nouveau
-    mouvement) + le dashboard natif (figé sur l'import historique) par 3
-    boutons SSO isolés par site vers gestion.etraph.com : Caisse LEH, Caisse
-    TICA (Aéroport), + Nouvelle caisse. "Pointage vs Caisse MO" est conservé
-    (reconciliation report, hors périmètre de ce changement)."""
+    mouvement) + le dashboard natif (figé sur l'import historique) + le
+    rapport Pointage vs Caisse MO (Tarak 02/09 : inutile, les domaines se
+    traitent un par un) par 3 boutons SSO isolés par site vers
+    gestion.etraph.com : Caisse LEH, Caisse TICA (Aéroport), + Nouvelle
+    caisse."""
     ws = frappe.get_doc("Workspace", "Caisses")
-
-    # 1) purge des 2 shortcuts natifs morts + du dashboard natif
-    dead_labels = {"💰 Mouvements de caisse", "➕ Nouveau mouvement", "📊 Dashboard Caisse LEH"}
-    kept = [s for s in ws.shortcuts if s.label not in dead_labels]
-    for s in list(ws.shortcuts):
-        if s.label in dead_labels:
-            ws.shortcuts.remove(s)
 
     new_shortcuts = [
         {"label": "🏥 Caisse LEH", "type": "URL",
@@ -383,25 +377,35 @@ def simplify_caisses_workspace():
         {"label": "➕ Nouvelle caisse", "type": "URL",
          "url": "https://gestion.etraph.com/oauth/login?next=/caisses/nouvelle", "color": "orange"},
     ]
+
+    # 1) purge de tout ce qui n'est pas un des 3 boutons cibles (natifs morts,
+    # dashboard, Pointage vs Caisse MO) + dédup si cette fonction a déjà
+    # tourné (idempotent, ne duplique jamais)
+    wanted_labels = {sc["label"] for sc in new_shortcuts}
+    seen = set()
+    for s in list(ws.shortcuts):
+        if s.label not in wanted_labels or s.label in seen:
+            ws.shortcuts.remove(s)
+        else:
+            seen.add(s.label)
+
+    existing_labels = {s.label for s in ws.shortcuts}
     for sc in new_shortcuts:
-        ws.append("shortcuts", sc)
+        if sc["label"] not in existing_labels:
+            ws.append("shortcuts", sc)
     ws.save()
     frappe.db.commit()
 
-    # 2) reconstruit content JSON : header + 3 nouveaux boutons + Pointage vs Caisse MO
+    # 2) reconstruit content JSON : header + 3 nouveaux boutons
     import json
     ws.reload()
     by_label = {s.label: s for s in ws.shortcuts}
-    pointage = by_label.get("🧾 Pointage vs Caisse MO")
     content = [{"id": "hd", "type": "header",
                 "data": {"text": '<span class="h4">💰 Caisse</span>', "col": 12}}]
     for sc in new_shortcuts:
         s = by_label[sc["label"]]
         content.append({"id": s.name, "type": "shortcut",
                          "data": {"shortcut_name": s.label, "col": 4}})
-    if pointage:
-        content.append({"id": pointage.name, "type": "shortcut",
-                         "data": {"shortcut_name": pointage.label, "col": 4}})
     ws.content = json.dumps(content)
     ws.save()
     frappe.db.commit()
