@@ -351,6 +351,63 @@ def annuler_mouvement(name, motif):
     return {"name": doc.name}
 
 
+# ------------------------------------------------ workspace "Caisses" (02/09)
+# Mission Tarak 02/09 : plus personne ne saisit de mouvement dans ERPNext
+# (vérifié : 719/719 Mouvement Caisse ont owner=Administrator, import
+# historique seul). Toute la saisie réelle passe désormais par
+# gestion.etraph.com (Node/Postgres). Les utilisateurs restent sur erp.etraph.com
+# comme point d'entrée unique -> la tuile "Caisses" doit juste présenter des
+# boutons SSO isolés par site + création, plus les liens natifs devenus morts
+# ni le dashboard ERPNext (qui resterait figé sur les données de l'import).
+
+def simplify_caisses_workspace():
+    """Remplace les 2 raccourcis natifs morts (Mouvements de caisse, Nouveau
+    mouvement) + le dashboard natif (figé sur l'import historique) par 3
+    boutons SSO isolés par site vers gestion.etraph.com : Caisse LEH, Caisse
+    TICA (Aéroport), + Nouvelle caisse. "Pointage vs Caisse MO" est conservé
+    (reconciliation report, hors périmètre de ce changement)."""
+    ws = frappe.get_doc("Workspace", "Caisses")
+
+    # 1) purge des 2 shortcuts natifs morts + du dashboard natif
+    dead_labels = {"💰 Mouvements de caisse", "➕ Nouveau mouvement", "📊 Dashboard Caisse LEH"}
+    kept = [s for s in ws.shortcuts if s.label not in dead_labels]
+    for s in list(ws.shortcuts):
+        if s.label in dead_labels:
+            ws.shortcuts.remove(s)
+
+    new_shortcuts = [
+        {"label": "🏥 Caisse LEH", "type": "URL",
+         "url": "https://gestion.etraph.com/oauth/login?next=/caisses/site/LEH", "color": "green"},
+        {"label": "✈️ Caisse TICA (Aéroport)", "type": "URL",
+         "url": "https://gestion.etraph.com/oauth/login?next=/caisses/site/ARP", "color": "blue"},
+        {"label": "➕ Nouvelle caisse", "type": "URL",
+         "url": "https://gestion.etraph.com/oauth/login?next=/caisses/nouvelle", "color": "orange"},
+    ]
+    for sc in new_shortcuts:
+        ws.append("shortcuts", sc)
+    ws.save()
+    frappe.db.commit()
+
+    # 2) reconstruit content JSON : header + 3 nouveaux boutons + Pointage vs Caisse MO
+    import json
+    ws.reload()
+    by_label = {s.label: s for s in ws.shortcuts}
+    pointage = by_label.get("🧾 Pointage vs Caisse MO")
+    content = [{"id": "hd", "type": "header",
+                "data": {"text": '<span class="h4">💰 Caisse</span>', "col": 12}}]
+    for sc in new_shortcuts:
+        s = by_label[sc["label"]]
+        content.append({"id": s.name, "type": "shortcut",
+                         "data": {"shortcut_name": s.label, "col": 4}})
+    if pointage:
+        content.append({"id": pointage.name, "type": "shortcut",
+                         "data": {"shortcut_name": pointage.label, "col": 4}})
+    ws.content = json.dumps(content)
+    ws.save()
+    frappe.db.commit()
+    return {"shortcuts": [s.label for s in ws.shortcuts], "content": ws.content}
+
+
 @frappe.whitelist()
 def recharger_sous_caisse(caisse, mode="fond", montant_cible=None):
     """Remise à niveau explicite. Kimi C8 : refusée tant qu'il reste de
